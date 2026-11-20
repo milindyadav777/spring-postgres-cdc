@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: source
+spec:
+  selector:
+    app.kubernetes.io/name: source
+  ports:
+  - name: p-5432
+    port: 5432
+    targetPort: 5432
+  clusterIP: None
+  publishNotReadyAddresses: true
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: source
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: source
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: source
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      containers:
+      - name: source
+        image: postgres:17.11
+        env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_DB
+          value: orders
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: POSTGRES_PASSWORD
+        - name: CAPTURE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lab-credentials
+              key: CAPTURE_PASSWORD
+        args:
+        - postgres
+        - -c
+        - wal_level=logical
+        - -c
+        - max_slot_wal_keep_size=1GB
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: scripts
+          mountPath: /docker-entrypoint-initdb.d/10-init.sh
+          subPath: source.sh
+          readOnly: true
+        ports:
+        - containerPort: 5432
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - pg_isready -q -h 127.0.0.1 -U postgres -d orders
+          periodSeconds: 12
+          timeoutSeconds: 8
+      volumes:
+      - name: scripts
+        configMap:
+          name: lab-scripts
+          defaultMode: 365
+  serviceName: source
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
