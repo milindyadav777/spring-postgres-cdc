@@ -1,0 +1,24 @@
+{{- if .Values.scaling.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ .Release.Name }}-projector
+spec:
+  scaleTargetRef:
+    name: {{ .Release.Name }}-projector
+  minReplicaCount: {{ .Values.scaling.min }}
+  maxReplicaCount: {{ .Values.scaling.max }}
+  pollingInterval: 10
+  cooldownPeriod: 90
+  triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: {{ tpl .Values.scaling.brokers . | quote }}
+      consumerGroup: {{ .Values.scaling.group | quote }}
+      topic: {{ .Values.scaling.topic | quote }}
+      lagThreshold: {{ .Values.scaling.lagPerPod | quote }}
+      offsetResetPolicy: earliest
+    {{- if .Values.scaling.authenticationRef }}
+    authenticationRef: {name: {{ .Values.scaling.authenticationRef }}}
+    {{- end }}
+{{- end }}

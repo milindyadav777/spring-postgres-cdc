@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- k8s/source.yaml
+- k8s/sink.yaml
+- k8s/kafka-0.yaml
+- k8s/kafka-1.yaml
+- k8s/kafka-2.yaml
+- k8s/topic-init.yaml
+- k8s/connect.yaml
+- k8s/register.yaml
+configMapGenerator:
+- name: lab-scripts
+  files:
+  - connector.json
+  - register.sh
+  - sink.sh
+  - source.sh
+  - topic.sh

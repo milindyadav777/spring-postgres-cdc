@@ -1,0 +1,23 @@
+image: spring-postgres-cdc:local
+imagePullPolicy: IfNotPresent
+existingSecret: lab-credentials
+roles: [projector]
+httpRole: projector
+env:
+  SINK_URL: "jdbc:postgresql://sink:5432/projection?connectTimeout=3&socketTimeout=10"
+  SINK_USER: "projector"
+  KAFKA_BROKERS: "kafka-0:9092,kafka-1:9092,kafka-2:9092"
+secretKeys: [SINK_PASSWORD]
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {cpu: "1", memory: 512Mi}
+scaling:
+  enabled: true
+  min: 1
+  max: 6
+  brokers: "kafka-0.{{ .Release.Namespace }}.svc:9092,kafka-1.{{ .Release.Namespace }}.svc:9092,kafka-2.{{ .Release.Namespace }}.svc:9092"
+  group: order-projector-v1
+  topic: orders.public.orders
+  lagPerPod: "50"
+  # Optional existing TriggerAuthentication for SASL/TLS.
+  authenticationRef: ""

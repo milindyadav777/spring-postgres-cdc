@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: topic-init
+spec:
+  backoffLimit: 12
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: topic-init
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      containers:
+      - name: topic-init
+        image: apache/kafka:4.1.2
+        command:
+        - sh
+        - /config/topic.sh
+        volumeMounts:
+        - name: scripts
+          mountPath: /config/topic.sh
+          subPath: topic.sh
+          readOnly: true
+      volumes:
+      - name: scripts
+        configMap:
+          name: lab-scripts
+          defaultMode: 365
+      restartPolicy: OnFailure

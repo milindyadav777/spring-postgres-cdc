@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: register
+spec:
+  backoffLimit: 12
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: register
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      containers:
+      - name: register
+        image: curlimages/curl:8.12.1
+        command:
+        - sh
+        - /config/register.sh
+        volumeMounts:
+        - name: scripts
+          mountPath: /config/register.sh
+          subPath: register.sh
+          readOnly: true
+        - name: scripts
+          mountPath: /config/connector.json
+          subPath: connector.json
+          readOnly: true
+      volumes:
+      - name: scripts
+        configMap:
+          name: lab-scripts
+          defaultMode: 365
+      restartPolicy: OnFailure
